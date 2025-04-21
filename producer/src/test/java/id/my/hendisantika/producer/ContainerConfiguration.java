@@ -103,5 +103,26 @@ public class ContainerConfiguration {
 
             }
         }
+                .withExposedPorts(8083)
+                .withNetwork(network)
+                .withNetworkAliases("connect")
+                .waitingFor(Wait.forHttp("/connectors").forPort(8083))
+                .withEnv("CONNECT_BOOTSTRAP_SERVERS", "kafka:19092")
+                .withEnv("CONNECT_LISTENERS", "http://0.0.0.0:8083")
+                .withEnv("CONNECT_GROUP_ID", "connect-cluster")
+                .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "connect-configs")
+                .withEnv("CONNECT_OFFSET_STORAGE_TOPIC", "connect-offsets")
+                .withEnv("CONNECT_STATUS_STORAGE_TOPIC", "connect-statuses")
+                .withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.storage.StringConverter")
+                .withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter")
+                .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "connect")
+                .withEnv("CONNECT_REST_ADVERTISED_PORT", "8083")
+                .withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java,/usr/share/confluent-hub-components")
+                .withEnv("CONNECT_REPLICATION_FACTOR", "1")
+                .withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1")
+                .withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1")
+                .withEnv("CONNECT_STATUS_STORAGE_REPLICATION_FACTOR", "1")
+                .withEnv("CONNECT_PRODUCER_CLIENT_ID", "connect-worker-producer");
+
 
     }
