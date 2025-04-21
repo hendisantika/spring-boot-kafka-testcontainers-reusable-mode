@@ -67,4 +67,41 @@ public class ContainerConfiguration {
                 .withNetwork(network)
                 .withReuse(true);
     }
-}
+
+    @Bean
+    @DependsOn("kafkaContainer")
+    GenericContainer<?> controlCenter() {
+        GenericContainer<?> schemaRegistry = new GenericContainer<>("confluentinc/cp-schema-registry:7.4.0")
+                .withExposedPorts(8085)
+                .withNetworkAliases("schemaregistry")
+                .withNetwork(network)
+                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", "PLAINTEXT://kafka:19092")
+                .withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8085")
+                .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schemaregistry")
+                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL", "PLAINTEXT")
+                .waitingFor(Wait.forHttp("/subjects"))
+                .withStartupTimeout(Duration.of(120, ChronoUnit.SECONDS));
+
+        GenericContainer<?> ksqldb = new GenericContainer<>("confluentinc/cp-ksqldb-server:7.4.0")
+                .withExposedPorts(8088)
+                .withNetwork(network)
+                .withNetworkAliases("ksqldb")
+                .withEnv("KSQL_LISTENERS", "http://0.0.0.0:8088")
+                .withEnv("KSQL_KSQL_SERVICE_ID", "ksqldb-server")
+                .withEnv("KSQL_BOOTSTRAP_SERVERS", "kafka:19092")
+                .withEnv("KSQL_KSQL_SCHEMA_REGISTRY_URL", "http://schemaregistry:8085");
+
+        GenericContainer<?> connect = new GenericContainer("confluentinc/cp-server-connect:7.4.0") {
+            @Override
+            protected void containerIsStarting(InspectContainerResponse containerInfo) {
+                try {
+                    execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-s3:latest");
+                    execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-jdbc:latest");
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException("Error downloading connectors", e);
+                }
+
+            }
+        }
+
+    }
