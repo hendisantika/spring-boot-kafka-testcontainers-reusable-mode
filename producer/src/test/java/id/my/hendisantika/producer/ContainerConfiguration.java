@@ -1,17 +1,23 @@
 package id.my.hendisantika.producer;
 
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import org.junit.runner.Description;
 import org.springframework.boot.devtools.restart.RestartScope;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.dockerfile.statement.Statement;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.lifecycle.Startables;
 
+import java.io.IOException;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -137,5 +143,20 @@ public class ContainerConfiguration {
 
         Startables.deepStart(schemaRegistry, ksqldb, connect, restProxy).join();
 
-
+        return new GenericContainer<>("confluentinc/cp-enterprise-control-center:7.4.0")
+                .withExposedPorts(9021, 9022)
+                .withNetwork(network)
+                .withEnv("CONTROL_CENTER_BOOTSTRAP_SERVERS", "PLAINTEXT://kafka:19092")
+                .withEnv("CONTROL_CENTER_REPLICATION_FACTOR", "1")
+                .withEnv("CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS", "1")
+                .withEnv("CONTROL_CENTER_SCHEMA_REGISTRY_SR1_URL", "http://schemaregistry:8085")
+                .withEnv("CONTROL_CENTER_SCHEMA_REGISTRY_URL", "http://schemaregistry:8085")
+                .withEnv("CONTROL_CENTER_KSQL_KSQLDB1_URL", "http://ksqldb:8088")
+                .withEnv("CONTROL_CENTER_KSQL_KSQLDB1_ADVERTISED_URL", "http://ksqldb:8088")
+                .withEnv("CONTROL_CENTER_CONNECT_CONNECT1_CLUSTER", "http://connect:8083")
+                .waitingFor(Wait.forHttp("/clusters").forPort(9021).allowInsecure())
+                .withStartupTimeout(Duration.of(120, ChronoUnit.SECONDS))
+                .withLabel("com.testcontainers.desktop.service", "cp-control-center");
     }
+
+}
