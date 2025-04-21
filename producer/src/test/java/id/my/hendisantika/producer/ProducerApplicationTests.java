@@ -1,13 +1,14 @@
 package id.my.hendisantika.producer;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.SpringApplication;
 
-@SpringBootTest
 class ProducerApplicationTests {
 
-    @Test
-    void contextLoads() {
+    public static void main(String[] args) {
+        SpringApplication.from(ProducerApplication::main)
+                .with(ContainerConfiguration.class)
+                .run(args);
     }
+
 
 }
