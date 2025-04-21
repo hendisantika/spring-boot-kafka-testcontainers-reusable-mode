@@ -1,10 +1,14 @@
 package id.my.hendisantika.producer;
 
 import org.junit.runner.Description;
+import org.springframework.boot.devtools.restart.RestartScope;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Bean;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.dockerfile.statement.Statement;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 
 import java.util.List;
 
@@ -52,5 +56,15 @@ public class ContainerConfiguration {
         } else {
             return defaultDaprNetwork;
         }
+    }
+
+    @Bean
+    @ServiceConnection
+    @RestartScope
+    ConfluentKafkaContainer kafkaContainer() {
+        return new ConfluentKafkaContainer("confluentinc/cp-kafka:7.4.0")
+                .withListener("kafka:19092")
+                .withNetwork(network)
+                .withReuse(true);
     }
 }
