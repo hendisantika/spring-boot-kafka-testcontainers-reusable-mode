@@ -1,7 +1,6 @@
 package id.my.hendisantika.producer;
 
 import com.github.dockerjava.api.command.InspectContainerResponse;
-import org.junit.runner.Description;
 import org.springframework.boot.devtools.restart.RestartScope;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -11,14 +10,12 @@ import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.builder.dockerfile.statement.Statement;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.lifecycle.Startables;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -38,31 +35,29 @@ public class ContainerConfiguration {
     Network network = getNetwork();
 
     static Network getNetwork() {
-        Network defaultDaprNetwork = new Network() {
-            @Override
-            public String getId() {
-                return KAFKA_NETWORK;
+        // Create a network or reuse an existing one
+        try {
+            // Check if network already exists
+            boolean networkExists = !DockerClientFactory.instance().client()
+                    .listNetworksCmd()
+                    .withNameFilter(KAFKA_NETWORK)
+                    .exec()
+                    .isEmpty();
+
+            if (networkExists) {
+                // Reuse existing network
+                return Network.builder()
+                        .createNetworkCmdModifier(cmd -> cmd.withName(KAFKA_NETWORK))
+                        .build();
+            } else {
+                // Create new network
+                return Network.builder()
+                        .createNetworkCmdModifier(cmd -> cmd.withName(KAFKA_NETWORK))
+                        .build();
             }
-
-            @Override
-            public void close() {
-
-            }
-
-            @Override
-            public Statement apply(Statement base, Description description) {
-                return null;
-            }
-        };
-
-        List<Network> networks = DockerClientFactory.instance().client().listNetworksCmd().withNameFilter(KAFKA_NETWORK).exec();
-        if (networks.isEmpty()) {
-            Network.builder()
-                    .createNetworkCmdModifier(cmd -> cmd.withName(KAFKA_NETWORK))
-                    .build().getId();
-            return defaultDaprNetwork;
-        } else {
-            return defaultDaprNetwork;
+        } catch (Exception e) {
+            // Fallback to default network
+            return Network.newNetwork();
         }
     }
 
@@ -99,16 +94,15 @@ public class ContainerConfiguration {
                 .withEnv("KSQL_BOOTSTRAP_SERVERS", "kafka:19092")
                 .withEnv("KSQL_KSQL_SCHEMA_REGISTRY_URL", "http://schemaregistry:8085");
 
-        GenericContainer<?> connect = new GenericContainer("confluentinc/cp-server-connect:7.4.0") {
+        GenericContainer connect = new GenericContainer("confluentinc/cp-server-connect:7.4.0") {
             @Override
-            private void containerIsStarting(InspectContainerResponse containerInfo) {
+            protected void containerIsStarting(InspectContainerResponse containerInfo) {
                 try {
                     execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-s3:latest");
                     execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-jdbc:latest");
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException("Error downloading connectors", e);
                 }
-
             }
         }
                 .withExposedPorts(8083)
@@ -158,5 +152,4 @@ public class ContainerConfiguration {
                 .withStartupTimeout(Duration.of(120, ChronoUnit.SECONDS))
                 .withLabel("com.testcontainers.desktop.service", "cp-control-center");
     }
-
 }

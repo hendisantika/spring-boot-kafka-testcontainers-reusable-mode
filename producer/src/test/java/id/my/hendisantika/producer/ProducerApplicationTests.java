@@ -1,14 +1,26 @@
 package id.my.hendisantika.producer;
 
-import org.springframework.boot.SpringApplication;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@SpringBootTest
+@Import(ContainerConfiguration.class)
+@DirtiesContext
 class ProducerApplicationTests {
 
-    public static void main(String[] args) {
-        SpringApplication.from(ProducerApplication::main)
-                .with(ContainerConfiguration.class)
-                .run(args);
-    }
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
 
+    @Test
+    void contextLoads() {
+        // Verify that the application context loads successfully
+        assertNotNull(kafkaTemplate, "KafkaTemplate should be autowired");
+    }
 
 }
