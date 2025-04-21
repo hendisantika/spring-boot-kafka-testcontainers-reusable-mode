@@ -6,9 +6,11 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.images.builder.dockerfile.statement.Statement;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.lifecycle.Startables;
 
 import java.util.List;
 
@@ -93,7 +95,7 @@ public class ContainerConfiguration {
 
         GenericContainer<?> connect = new GenericContainer("confluentinc/cp-server-connect:7.4.0") {
             @Override
-            protected void containerIsStarting(InspectContainerResponse containerInfo) {
+            private void containerIsStarting(InspectContainerResponse containerInfo) {
                 try {
                     execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-s3:latest");
                     execInContainer("confluent-hub", "install", "--no-prompt", "confluentinc/kafka-connect-jdbc:latest");
@@ -123,6 +125,17 @@ public class ContainerConfiguration {
                 .withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1")
                 .withEnv("CONNECT_STATUS_STORAGE_REPLICATION_FACTOR", "1")
                 .withEnv("CONNECT_PRODUCER_CLIENT_ID", "connect-worker-producer");
+
+        GenericContainer<?> restProxy = new GenericContainer<>("confluentinc/cp-kafka-rest:7.4.0")
+                .withExposedPorts(8082)
+                .withNetwork(network)
+                .withEnv("KAFKA_REST_HOST_NAME", "rest-proxy")
+                .withEnv("KAFKA_REST_LISTENERS", "http://0.0.0.0:8082")
+                .withEnv("KAFKA_REST_BOOTSTRAP_SERVERS", "kafka:19092")
+                .withEnv("KAFKA_REST_SCHEMA_REGISTRY_URL", "http://schemaregistry:8085")
+                .withLabel("com.testcontainers.desktop.service", "restproxy");
+
+        Startables.deepStart(schemaRegistry, ksqldb, connect, restProxy).join();
 
 
     }
