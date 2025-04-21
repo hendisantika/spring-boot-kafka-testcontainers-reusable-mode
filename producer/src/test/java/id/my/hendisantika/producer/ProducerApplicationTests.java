@@ -1,26 +1,31 @@
 package id.my.hendisantika.producer;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.test.annotation.DirtiesContext;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
-@Import(ContainerConfiguration.class)
-@DirtiesContext
+@Testcontainers
 class ProducerApplicationTests {
 
-    @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    @Container
+    static KafkaContainer kafkaContainer = new KafkaContainer(
+            DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+            .withReuse(true);
+
+    @DynamicPropertySource
+    static void kafkaProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.kafka.bootstrap-servers", kafkaContainer::getBootstrapServers);
+    }
 
     @Test
     void contextLoads() {
         // Verify that the application context loads successfully
-        assertNotNull(kafkaTemplate, "KafkaTemplate should be autowired");
     }
 
 }
