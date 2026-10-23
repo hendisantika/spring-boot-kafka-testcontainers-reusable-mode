@@ -1,7 +1,5 @@
 package id.my.hendisantika.consumer;
 
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.devtools.restart.RestartScope;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -38,11 +36,6 @@ class ConsumerApplicationTests {
                 @Override
                 public void close() {
 
-                }
-
-                @Override
-                public Statement apply(Statement base, Description description) {
-                    return null;
                 }
             };
 

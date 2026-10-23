@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
@@ -14,7 +14,7 @@ import org.testcontainers.utility.DockerImageName;
 class ProducerApplicationTests {
 
     @Container
-    static KafkaContainer kafkaContainer = new KafkaContainer(
+    static ConfluentKafkaContainer kafkaContainer = new ConfluentKafkaContainer(
             DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
             .withReuse(true);
 
