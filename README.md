@@ -1,7 +1,24 @@
 # Spring Boot Kafka TestContainers Reusable Mode
 
+[![Java CI with Maven](https://github.com/hendisantika/spring-boot-kafka-testcontainers-reusable-mode/actions/workflows/maven.yml/badge.svg)](https://github.com/hendisantika/spring-boot-kafka-testcontainers-reusable-mode/actions/workflows/maven.yml)
+![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot)
+![Testcontainers](https://img.shields.io/badge/Testcontainers-2.x-2496ED?logo=docker)
+![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)
+
 This project demonstrates how to use TestContainers with Kafka in reusable mode for Spring Boot applications. It
 consists of a producer and consumer application that communicate through Kafka.
+
+## Tech Stack
+
+| Component      | Version                                   |
+|----------------|-------------------------------------------|
+| Java           | 25 (Temurin in CI)                        |
+| Spring Boot    | 4.1.x (`spring-boot-starter-kafka`)       |
+| Apache Kafka   | 4.x client (managed by Spring Boot)       |
+| Testcontainers | 2.x (`testcontainers-kafka`)              |
+| Maven          | 3.10.x via the Maven Wrapper (`./mvnw`)   |
+| Kafka image    | `confluentinc/cp-kafka:7.4.0`             |
 
 ## Project Structure
 
@@ -42,7 +59,7 @@ Used in `ProducerApplicationTests.java`:
 class ProducerApplicationTests {
 
    @Container
-   static KafkaContainer kafkaContainer = new KafkaContainer(
+   static ConfluentKafkaContainer kafkaContainer = new ConfluentKafkaContainer(
            DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
            .withReuse(true);
 
@@ -54,6 +71,10 @@ class ProducerApplicationTests {
 ```
 
 The key element is `.withReuse(true)` which enables the reusable mode.
+
+> **Note:** Testcontainers 2.x removed the legacy `org.testcontainers.containers.KafkaContainer`. Use
+> `org.testcontainers.kafka.ConfluentKafkaContainer` for `confluentinc/cp-kafka` images or
+> `org.testcontainers.kafka.KafkaContainer` for `apache/kafka` images.
 
 ### Approach 2: TestConfiguration with ServiceConnection
 
@@ -104,8 +125,20 @@ The project also demonstrates:
 
 ### Prerequisites
 
-- Java 17 or higher
+- Java 25
 - Docker
+- Maven is optional; each module ships with the Maven Wrapper (`./mvnw`)
+
+### Enabling Reusable Mode
+
+`.withReuse(true)` only takes effect when reuse is enabled on your machine. Add the following line to
+`~/.testcontainers.properties`:
+
+```properties
+testcontainers.reuse.enable=true
+```
+
+Without this flag (for example on CI), containers are started and stopped normally.
 
 ### Running the Applications
 
@@ -121,12 +154,29 @@ The project also demonstrates:
    ./mvnw spring-boot:run
    ```
 
+   Alternatively, start the consumer together with a reusable Kafka container (Approach 3):
+   ```
+   cd consumer
+   ./mvnw spring-boot:test-run
+   ```
+
 ### Running Tests
 
-1. Run tests with reusable containers:
-   ```
-   ./mvnw test
-   ```
+Run the tests in each module (Docker must be running):
+
+```
+cd producer && ./mvnw verify
+cd ../consumer && ./mvnw verify
+```
+
+## CI/CD & Dependency Management
+
+- **GitHub Actions** (`.github/workflows/maven.yml`): builds and tests `producer` and `consumer` as a matrix on
+  Temurin JDK 25 using the Maven Wrapper. Surefire reports are uploaded when a build fails, and the Maven dependency
+  graph is submitted to GitHub on every push to `main`.
+- **Dependabot** (`.github/dependabot.yml`): checks Maven (both modules) and GitHub Actions weekly on Monday at
+  05:00 Asia/Jakarta. Updates are grouped (`spring`, `testcontainers`, `maven-plugins`, `others`, `github-actions`),
+  use conventional commit prefixes (`build(deps)`, `ci(deps)`), and wait for a short cooldown after new releases.
 
 ## Configuration
 
